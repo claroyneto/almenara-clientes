@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Ficha de cliente — Almenara</title>
+  <link rel="stylesheet" href="css/estilo.css" />
+</head>
+<body>
+  <p><a href="index.html">&larr; Volver a la lista</a></p>
+
+  <div id="ficha">
+    <h1><input id="nombre" type="text" /></h1>
+    <label>Rubro <input id="rubro" type="text" /></label>
+    <label>Etapa
+      <select id="etapa">
+        <option value="prospecto">Prospecto</option>
+        <option value="diagnostico">Diagnóstico</option>
+        <option value="cliente">Cliente</option>
+        <option value="descartado">Descartado</option>
+      </select>
+    </label>
+    <button id="btn-guardar">Guardar</button>
+    <p id="guardado-mensaje"></p>
+  </div>
+
+  <h2>Notas</h2>
+  <ul id="lista-notas"></ul>
+
+  <script type="module" src="js/cliente.js"></script>
+</body>
+</html>
