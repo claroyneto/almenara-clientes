@@ -3,6 +3,7 @@
 export function interpretarEntrada(update) {
   if (update.callback_query) {
     const cq = update.callback_query;
+    if (!cq.message?.chat?.id) return null;
     return {
       chatId: String(cq.message.chat.id),
       tipo: 'boton',

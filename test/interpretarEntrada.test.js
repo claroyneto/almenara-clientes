@@ -28,3 +28,7 @@ test('un update sin mensaje de texto ni callback devuelve null', () => {
   assert.equal(interpretarEntrada({ message: { chat: { id: 42 }, photo: [] } }), null);
   assert.equal(interpretarEntrada({}), null);
 });
+
+test('un callback_query sin message no revienta, devuelve null', () => {
+  assert.equal(interpretarEntrada({ callback_query: { id: 'cb1', data: 'etapa:prospecto' } }), null);
+});
