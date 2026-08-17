@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient.js';
+import { esc } from './escapar.js';
 
 const params = new URLSearchParams(location.search);
 const clienteId = params.get('id');
@@ -42,10 +43,10 @@ async function cargarNotas() {
     .eq('cliente_id', clienteId)
     .order('creado_en', { ascending: false });
   if (error) {
-    notasEl.innerHTML = `<li>Error cargando notas: ${error.message}</li>`;
+    notasEl.innerHTML = `<li>Error cargando notas: ${esc(error.message)}</li>`;
     return;
   }
   notasEl.innerHTML = data.length
-    ? data.map((n) => `<li><strong>${new Date(n.creado_en).toLocaleDateString('es-CL')} — ${n.autor}:</strong> ${n.texto}</li>`).join('')
+    ? data.map((n) => `<li><strong>${new Date(n.creado_en).toLocaleDateString('es-CL')} — ${esc(n.autor)}:</strong> ${esc(n.texto)}</li>`).join('')
     : '<li>Sin notas todavía.</li>';
 }

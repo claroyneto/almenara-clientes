@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient.js';
+import { esc } from './escapar.js';
 
 const ETIQUETAS_ETAPA = { prospecto: 'Prospecto', diagnostico: 'Diagnóstico', cliente: 'Cliente', descartado: 'Descartado' };
 
@@ -34,7 +35,7 @@ async function cargarClientes() {
     .select('id, nombre, rubro, etapa, actualizado_en')
     .order('actualizado_en', { ascending: false });
   if (error) {
-    listaEl.innerHTML = `<li>Error cargando clientes: ${error.message}</li>`;
+    listaEl.innerHTML = `<li>Error cargando clientes: ${esc(error.message)}</li>`;
     return;
   }
   clientesCache = data;
@@ -53,7 +54,7 @@ function renderizarLista() {
   listaEl.innerHTML = filtrados.length
     ? filtrados.map((c) => `
         <li>
-          <a href="cliente.html?id=${c.id}">${c.nombre}</a>
+          <a href="cliente.html?id=${c.id}">${esc(c.nombre)}</a>
           <span class="etapa">${ETIQUETAS_ETAPA[c.etapa] ?? c.etapa}</span>
         </li>
       `).join('')
