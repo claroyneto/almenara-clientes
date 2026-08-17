@@ -60,7 +60,7 @@ async function procesar(update, { datos, telegram }) {
   }
 
   const necesitaListaClientes = entrada.tipo === 'comando' && (entrada.valor === '/nota' || entrada.valor === '/clientes');
-  const clientesRecientes = necesitaListaClientes ? await datos.listarClientesRecientes() : undefined;
+  const clientesRecientes = necesitaListaClientes ? await datos.listarClientesRecientes(50) : undefined;
 
   const accion = decidirAccion({ entrada, estado, clienteDuplicado, clientesRecientes });
 
