@@ -14,6 +14,14 @@ if (!clienteId) {
 } else {
   await cargarFicha();
   await cargarNotas();
+
+  document.getElementById('btn-guardar').addEventListener('click', async () => {
+    const { error } = await supabase
+      .from('clientes')
+      .update({ nombre: nombreEl.value.trim(), rubro: rubroEl.value.trim(), etapa: etapaEl.value })
+      .eq('id', clienteId);
+    mensajeEl.textContent = error ? `Error: ${error.message}` : 'Guardado.';
+  });
 }
 
 async function cargarFicha() {
@@ -41,11 +49,3 @@ async function cargarNotas() {
     ? data.map((n) => `<li><strong>${new Date(n.creado_en).toLocaleDateString('es-CL')} — ${n.autor}:</strong> ${n.texto}</li>`).join('')
     : '<li>Sin notas todavía.</li>';
 }
-
-document.getElementById('btn-guardar').addEventListener('click', async () => {
-  const { error } = await supabase
-    .from('clientes')
-    .update({ nombre: nombreEl.value.trim(), rubro: rubroEl.value.trim(), etapa: etapaEl.value })
-    .eq('id', clienteId);
-  mensajeEl.textContent = error ? `Error: ${error.message}` : 'Guardado.';
-});
