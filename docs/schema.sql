@@ -49,25 +49,44 @@ alter table public.notas enable row level security;
 alter table public.usuarios_bot enable row level security;
 alter table public.bot_estado enable row level security;
 
+-- security definer para poder chequear usuarios_autorizados desde las
+-- políticas de clientes/notas sin que esas subqueries queden sujetas a
+-- RLS de usuarios_autorizados (que no tiene políticas para 'authenticated'
+-- y, evaluada como el usuario que llama, siempre devolvería falso).
+create or replace function public.es_autorizado() returns boolean
+  language sql stable security definer set search_path = public as $$
+    select exists (select 1 from public.usuarios_autorizados u
+                   where u.email = auth.jwt()->>'email');
+  $$;
+revoke all on function public.es_autorizado() from public, anon;
+grant execute on function public.es_autorizado() to authenticated;
+
+alter table public.usuarios_autorizados enable row level security;
+-- Sin políticas para 'authenticated': solo el bot (service_role, bypasea RLS)
+-- escribe/lee esta tabla directo. Los usuarios normales solo la consultan
+-- indirectamente a través de public.es_autorizado().
+
 drop policy if exists clientes_select on public.clientes;
 create policy clientes_select on public.clientes for select to authenticated
-  using (exists (select 1 from public.usuarios_autorizados u where u.email = auth.jwt()->>'email'));
+  using (public.es_autorizado());
 
 drop policy if exists clientes_insert on public.clientes;
 create policy clientes_insert on public.clientes for insert to authenticated
-  with check (exists (select 1 from public.usuarios_autorizados u where u.email = auth.jwt()->>'email'));
+  with check (public.es_autorizado());
 
 drop policy if exists clientes_update on public.clientes;
 create policy clientes_update on public.clientes for update to authenticated
-  using (exists (select 1 from public.usuarios_autorizados u where u.email = auth.jwt()->>'email'))
-  with check (exists (select 1 from public.usuarios_autorizados u where u.email = auth.jwt()->>'email'));
+  using (public.es_autorizado())
+  with check (public.es_autorizado());
 
 drop policy if exists notas_select on public.notas;
 create policy notas_select on public.notas for select to authenticated
-  using (exists (select 1 from public.usuarios_autorizados u where u.email = auth.jwt()->>'email'));
+  using (public.es_autorizado());
 
 drop policy if exists notas_insert on public.notas;
 create policy notas_insert on public.notas for insert to authenticated
-  with check (exists (select 1 from public.usuarios_autorizados u where u.email = auth.jwt()->>'email'));
+  with check (public.es_autorizado());
+
+create index if not exists notas_cliente_id_idx on public.notas(cliente_id);
 
 comment on table public.clientes is 'Clientes/prospectos comerciales de Almenara — no de un cliente de terceros.';
