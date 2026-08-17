@@ -29,9 +29,9 @@ Esto es infraestructura **propia de Almenara** (herramienta comercial interna), 
 Tres piezas nuevas, sin infraestructura compartida con ningún cliente:
 
 - **Bot de Telegram** (`almenara_clientes_bot`, se crea con BotFather), configurado con **webhook** — no polling. Telegram le entrega cada mensaje a una URL en vez de que el bot tenga que consultar todo el tiempo.
-- **Función serverless en Vercel** que recibe el webhook, interpreta el mensaje y escribe a la base de datos. Sin proceso persistente que mantener corriendo — evita a propósito el problema de hosting 24/7 (Railway/Render) que ya complicó el despliegue del bot de Horas.
+- **Función serverless en Cloudflare Pages** (`functions/api/telegram-webhook.js`, mismo patrón ya probado en `Almenara_Web/functions/api/enviar-diagnostico.js`: runtime edge, `export async function onRequestPost(context)`, sin build ni dependencias de npm) que recibe el webhook, interpreta el mensaje y escribe a la base de datos. Sin proceso persistente que mantener corriendo — evita a propósito el problema de hosting 24/7 (Railway/Render) que ya complicó el despliegue del bot de Horas.
 - **Supabase nuevo y dedicado** (proyecto propio de Almenara, no el de ningún cliente), con RLS restringido a los correos de Carolina y Jorge.
-- **Página web** (deploy en Vercel) que lee de ese Supabase: login con magic link, lista de clientes, ficha con historial de notas.
+- **Página web** (HTML/JS plano, mismo sitio Cloudflare Pages, sin build step — mismo criterio que ya usa el resto de `Almenara_Web`) que lee de ese Supabase con el cliente JS oficial cargado por CDN: login con magic link, lista de clientes, ficha con historial de notas.
 
 ## 4. Modelo de datos
 
@@ -82,7 +82,7 @@ Sin reportes ni gráficos — no se pidió y sería agregar alcance de más.
 ## 7. Manejo de errores y seguridad
 
 - **El webhook siempre responde 200 OK rápido a Telegram**, incluso si algo falla adentro (se loggea el error y se le manda a la persona un mensaje de "tuve un problema, intenta de nuevo"). Sin esto, Telegram reintenta la entrega y se puede terminar duplicando notas — el mismo tipo de bug que se corrigió recientemente en Registro por chat (offset no persistido); acá se diseña bien desde el principio.
-- **La URL del webhook es pública** (así funciona Vercel) y se protege con un token secreto que Telegram manda en cada request (`secret_token` de la API de Telegram) — sin esto, cualquiera que descubra la URL podría mandar datos falsos al CRM.
+- **La URL del webhook es pública** (así funciona un endpoint de Cloudflare Pages Functions) y se protege con un token secreto que Telegram manda en cada request (`secret_token` de la API de Telegram) — sin esto, cualquiera que descubra la URL podría mandar datos falsos al CRM.
 - Ningún dato de clientes de terceros pasa por acá — es información comercial propia de Almenara sobre sus propios prospectos/clientes.
 
 ## 8. Próximo paso
