@@ -7,11 +7,15 @@ function fetchFalso(respuestas) {
   const impl = async (url, opciones = {}) => {
     llamadas.push({ url, metodo: opciones.method || 'GET', cuerpo: opciones.body ? JSON.parse(opciones.body) : null });
     const siguiente = respuestas.shift() ?? { status: 200, body: [] };
+    // body === undefined simula una respuesta real sin contenido (como el
+    // 201 vacío de PostgREST en upserts sin return=representation): text()
+    // debe devolver '', no la cadena "undefined".
+    const texto = siguiente.body === undefined ? '' : JSON.stringify(siguiente.body);
     return {
       ok: siguiente.status < 300,
       status: siguiente.status,
       json: async () => siguiente.body,
-      text: async () => JSON.stringify(siguiente.body)
+      text: async () => texto
     };
   };
   impl.llamadas = llamadas;
@@ -92,6 +96,12 @@ test('guardarEstado hace upsert (Prefer merge-duplicates) en bot_estado', async 
   const datos = crearDatos({ supabaseUrl: 'https://x.supabase.co', serviceRoleKey: 'k', fetchImpl });
   await datos.guardarEstado('42', 'nuevo_nombre', {});
   assert.match(fetchImpl.llamadas[0].url, /\/bot_estado$/);
+});
+
+test('guardarEstado no revienta con un 201 de body vacío (caso real de PostgREST con merge-duplicates)', async () => {
+  const fetchImpl = fetchFalso([{ status: 201, body: undefined }]);
+  const datos = crearDatos({ supabaseUrl: 'https://x.supabase.co', serviceRoleKey: 'k', fetchImpl });
+  await assert.doesNotReject(() => datos.guardarEstado('42', 'nuevo_nombre', {}));
 });
 
 test('borrarEstado manda DELETE filtrado por chat_id', async () => {

@@ -22,8 +22,12 @@ export function crearDatos({ supabaseUrl, serviceRoleKey, fetchImpl = fetch }) {
       const detalle = await resp.text().catch(() => '');
       throw new Error(`Supabase respondió ${resp.status} en ${ruta}: ${detalle}`);
     }
-    if (resp.status === 204) return null;
-    return resp.json();
+    // Decidir por contenido, no por status code: PostgREST responde 201 con
+    // body vacío en POST con Prefer: resolution=merge-duplicates (sin
+    // return=representation), no 204 — mirar solo el status hacía que
+    // resp.json() reventara con SyntaxError sobre un body vacío.
+    const texto = await resp.text();
+    return texto ? JSON.parse(texto) : null;
   }
 
   async function borrarEstado(chatId) {
