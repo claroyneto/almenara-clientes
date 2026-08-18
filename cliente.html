@@ -8,23 +8,30 @@
 <body>
   <p><a href="index.html">&larr; Volver a la lista</a></p>
 
-  <div id="ficha">
+  <div id="ficha" class="tarjeta">
     <h1><input id="nombre" type="text" /></h1>
-    <label>Rubro <input id="rubro" type="text" /></label>
-    <label>Etapa
+    <div class="campo">
+      <label>Rubro</label>
+      <input id="rubro" type="text" />
+    </div>
+    <div class="campo">
+      <label>Etapa</label>
       <select id="etapa">
         <option value="prospecto">Prospecto</option>
         <option value="diagnostico">Diagnóstico</option>
         <option value="cliente">Cliente</option>
         <option value="descartado">Descartado</option>
       </select>
-    </label>
+    </div>
+
+    <div id="campos-extra"></div>
+
     <button id="btn-guardar">Guardar</button>
-    <p id="guardado-mensaje"></p>
+    <p id="guardado-mensaje" class="mensaje"></p>
   </div>
 
   <h2>Notas</h2>
-  <ul id="lista-notas"></ul>
+  <ul id="lista-notas" class="linea-tiempo"></ul>
 
   <script type="module" src="js/cliente.js"></script>
 </body>

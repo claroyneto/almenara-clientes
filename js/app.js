@@ -53,9 +53,12 @@ function renderizarLista() {
 
   listaEl.innerHTML = filtrados.length
     ? filtrados.map((c) => `
-        <li>
-          <a href="cliente.html?id=${c.id}">${esc(c.nombre)}</a>
-          <span class="etapa">${ETIQUETAS_ETAPA[c.etapa] ?? c.etapa}</span>
+        <li class="tarjeta-cliente">
+          <div>
+            <a href="cliente.html?id=${c.id}">${esc(c.nombre)}</a>
+            ${c.rubro ? `<div class="rubro">${esc(c.rubro)}</div>` : ''}
+          </div>
+          <span class="pildora-etapa ${esc(c.etapa)}">${esc(ETIQUETAS_ETAPA[c.etapa] ?? c.etapa)}</span>
         </li>
       `).join('')
     : '<li>Sin resultados.</li>';
