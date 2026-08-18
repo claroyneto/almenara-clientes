@@ -1,0 +1,9 @@
+functions/
+test/
+docs/
+node_modules/
+package.json
+wrangler.jsonc
+worker.js
+.gitignore
+.git/

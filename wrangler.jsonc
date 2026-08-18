@@ -1,4 +1,9 @@
 {
   "name": "almenara-clientes",
-  "pages_build_output_dir": "."
+  "compatibility_date": "2026-08-18",
+  "main": "worker.js",
+  "assets": {
+    "directory": ".",
+    "binding": "ASSETS"
+  }
 }
