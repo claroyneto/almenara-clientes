@@ -3,6 +3,7 @@
 // fuegos-telegram-bot), no como función serverless. Reutiliza toda la
 // lógica ya construida y probada en functions/_lib/ — solo cambia cómo
 // llegan los updates de Telegram.
+import 'dotenv/config';
 import { crearDatos } from './functions/_lib/datos.js';
 import { crearTelegram } from './functions/_lib/telegram.js';
 import { procesar } from './functions/_lib/procesar.js';
