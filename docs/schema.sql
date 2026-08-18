@@ -14,13 +14,19 @@ create table if not exists public.clientes (
   rubro text,
   etapa text not null default 'prospecto'
     check (etapa in ('prospecto','diagnostico','cliente','descartado')),
-  -- Campos definidos a mano por la usuaria en la pantalla "Configurar
-  -- campos" (ver definiciones_campos) — nunca requieren migración de
-  -- schema para agregar uno nuevo. { "<id de definiciones_campos>": valor }
-  campos_extra jsonb not null default '{}'::jsonb,
   creado_en timestamptz not null default now(),
   actualizado_en timestamptz not null default now()
 );
+
+-- `create table if not exists` de arriba no toca una tabla que ya existe
+-- (que es el caso real: clientes se creó en Task 1) — por eso la columna
+-- nueva necesita su propio `alter table`, no basta con agregarla al
+-- `create table`.
+-- Campos definidos a mano por la usuaria en la pantalla "Configurar
+-- campos" (ver definiciones_campos) — nunca requieren migración de
+-- schema para agregar uno nuevo. { "<id de definiciones_campos>": valor }
+alter table public.clientes
+  add column if not exists campos_extra jsonb not null default '{}'::jsonb;
 
 -- Campos adicionales que la usuaria puede agregar/quitar desde la web sin
 -- tocar código ni el esquema — nombre, rubro y etapa siguen siendo fijos
