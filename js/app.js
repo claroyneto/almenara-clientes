@@ -1,14 +1,22 @@
 import { supabase } from './supabaseClient.js';
 import { esc } from './escapar.js';
+import { diasDesdeActividad, estadoBrasa, textoRecencia } from './recencia.js';
 
-const ETIQUETAS_ETAPA = { prospecto: 'Prospecto', diagnostico: 'Diagnóstico', cliente: 'Cliente', descartado: 'Descartado' };
+// Orden fijo de la torre de señales: de "recién avistado" a "en puerto" (o
+// descartado). El tablero siempre muestra las 4 columnas en este orden,
+// independiente de en qué orden vengan los datos.
+const ETAPAS = [
+  { id: 'prospecto', etiqueta: 'Prospecto' },
+  { id: 'diagnostico', etiqueta: 'Diagnóstico' },
+  { id: 'cliente', etiqueta: 'Cliente' },
+  { id: 'descartado', etiqueta: 'Descartado' }
+];
 
 const loginDiv = document.getElementById('login');
 const appDiv = document.getElementById('app');
 const loginMensaje = document.getElementById('login-mensaje');
-const listaEl = document.getElementById('lista-clientes');
+const tableroEl = document.getElementById('tablero');
 const buscadorEl = document.getElementById('buscador');
-const filtroEtapaEl = document.getElementById('filtro-etapa');
 
 let clientesCache = [];
 
@@ -35,37 +43,53 @@ async function cargarClientes() {
     .select('id, nombre, rubro, etapa, actualizado_en')
     .order('actualizado_en', { ascending: false });
   if (error) {
-    listaEl.innerHTML = `<li>Error cargando clientes: ${esc(error.message)}</li>`;
+    tableroEl.innerHTML = `<p class="mensaje error">Error cargando clientes: ${esc(error.message)}</p>`;
     return;
   }
   clientesCache = data;
-  renderizarLista();
+  renderizarTablero();
 }
 
-function renderizarLista() {
+function renderizarTablero() {
   const busqueda = buscadorEl.value.trim().toLowerCase();
-  const etapaFiltro = filtroEtapaEl.value;
-  const filtrados = clientesCache.filter((c) => {
-    const calzaBusqueda = !busqueda || c.nombre.toLowerCase().includes(busqueda);
-    const calzaEtapa = !etapaFiltro || c.etapa === etapaFiltro;
-    return calzaBusqueda && calzaEtapa;
-  });
+  const filtrados = busqueda
+    ? clientesCache.filter((c) => c.nombre.toLowerCase().includes(busqueda))
+    : clientesCache;
 
-  listaEl.innerHTML = filtrados.length
-    ? filtrados.map((c) => `
-        <li class="tarjeta-cliente">
-          <div>
-            <a href="cliente.html?id=${c.id}">${esc(c.nombre)}</a>
-            ${c.rubro ? `<div class="rubro">${esc(c.rubro)}</div>` : ''}
-          </div>
-          <span class="pildora-etapa ${esc(c.etapa)}">${esc(ETIQUETAS_ETAPA[c.etapa] ?? c.etapa)}</span>
-        </li>
-      `).join('')
-    : '<li>Sin resultados.</li>';
+  tableroEl.innerHTML = ETAPAS.map((etapa) => {
+    const deEstaEtapa = filtrados.filter((c) => c.etapa === etapa.id);
+    const tarjetas = deEstaEtapa.length
+      ? deEstaEtapa.map((c) => {
+          const dias = diasDesdeActividad(c.actualizado_en);
+          // En Descartado no hay nada que "enfriarse" -- el trato ya se
+          // cerró, así que la fecha se muestra sin el punto de brasa/ceniza.
+          const puntoBrasa = etapa.id === 'descartado' ? '' : `<span class="punto-brasa ${estadoBrasa(dias)}"></span>`;
+          return `
+            <li>
+              <a class="tarjeta-cliente" href="cliente.html?id=${c.id}" style="--etapa-color: var(--etapa-${etapa.id})">
+                <div class="nombre">${esc(c.nombre)}</div>
+                ${c.rubro ? `<div class="rubro">${esc(c.rubro)}</div>` : ''}
+                <div class="recencia">
+                  ${puntoBrasa}
+                  ${esc(textoRecencia(dias))}
+                </div>
+              </a>
+            </li>`;
+        }).join('')
+      : `<li class="sin-resultados">${busqueda ? 'Sin resultados.' : 'Nadie en esta etapa todavía.'}</li>`;
+
+    return `
+      <div class="columna-etapa ${etapa.id}">
+        <div class="columna-cabecera" style="--etapa-color: var(--etapa-${etapa.id})">
+          <span class="titulo">${etapa.etiqueta}</span>
+          <span class="cuenta">${deEstaEtapa.length}</span>
+        </div>
+        <ul class="tarjetas-etapa">${tarjetas}</ul>
+      </div>`;
+  }).join('');
 }
 
-buscadorEl.addEventListener('input', renderizarLista);
-filtroEtapaEl.addEventListener('change', renderizarLista);
+buscadorEl.addEventListener('input', renderizarTablero);
 
 // Si ya había una sesión activa (magic link ya usado antes), mostrar la app directo.
 const { data: { session } } = await supabase.auth.getSession();

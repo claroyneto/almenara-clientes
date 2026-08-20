@@ -1,5 +1,6 @@
 import { supabase } from './supabaseClient.js';
 import { esc } from './escapar.js';
+import { diasDesdeActividad, estadoBrasa, textoRecencia } from './recencia.js';
 
 const params = new URLSearchParams(location.search);
 const clienteId = params.get('id');
@@ -10,6 +11,7 @@ const etapaEl = document.getElementById('etapa');
 const mensajeEl = document.getElementById('guardado-mensaje');
 const notasEl = document.getElementById('lista-notas');
 const camposExtraEl = document.getElementById('campos-extra');
+const recenciaEl = document.getElementById('recencia-cliente');
 
 let definiciones = [];
 let camposExtraActuales = {};
@@ -66,7 +68,9 @@ async function agregarNota() {
   // Mismo efecto que agregarNota() en functions/_lib/datos.js del lado del
   // bot: tocar actualizado_en para que el cliente suba al tope de la lista
   // en index.html, sin importar por qué canal llegó la nota.
-  await supabase.from('clientes').update({ actualizado_en: new Date().toISOString() }).eq('id', clienteId);
+  const ahora = new Date().toISOString();
+  await supabase.from('clientes').update({ actualizado_en: ahora }).eq('id', clienteId);
+  renderizarRecencia(ahora);
 }
 
 async function eliminarCliente() {
@@ -91,7 +95,7 @@ async function cargarDefiniciones() {
 }
 
 async function cargarFicha() {
-  const { data, error } = await supabase.from('clientes').select('nombre, rubro, etapa, campos_extra').eq('id', clienteId).single();
+  const { data, error } = await supabase.from('clientes').select('nombre, rubro, etapa, campos_extra, actualizado_en').eq('id', clienteId).single();
   if (error) {
     mensajeEl.textContent = `Error: ${error.message}`;
     mensajeEl.className = 'mensaje error';
@@ -102,6 +106,12 @@ async function cargarFicha() {
   etapaEl.value = data.etapa;
   camposExtraActuales = data.campos_extra ?? {};
   renderizarCamposExtra();
+  if (data.etapa !== 'descartado') renderizarRecencia(data.actualizado_en);
+}
+
+function renderizarRecencia(fechaIso) {
+  const dias = diasDesdeActividad(fechaIso);
+  recenciaEl.innerHTML = `<span class="punto-brasa ${estadoBrasa(dias)}"></span>Última actividad: ${esc(textoRecencia(dias))}`;
 }
 
 function renderizarCamposExtra() {
