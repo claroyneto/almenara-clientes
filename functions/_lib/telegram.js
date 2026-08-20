@@ -33,6 +33,25 @@ export function crearTelegram({ token, fetchImpl = fetch }) {
     },
     async responderCallback(callbackId) {
       await llamar('answerCallbackQuery', { callback_query_id: callbackId });
+    },
+    // Solo para notas de voz por ahora, de ahí el mimeType fijo: Telegram
+    // entrega toda nota de voz en OGG/Opus (mismo hecho ya documentado en
+    // Almenara_Registro/motor y en el bot de Gastos_Casa). Devuelve un
+    // ArrayBuffer (no un Buffer de Node) para que funcione igual en
+    // bot.js (Node) y en functions/api/telegram-webhook.js (Cloudflare
+    // Workers, sin Buffer global).
+    async descargarArchivo(fileId) {
+      const info = await llamar('getFile', { file_id: fileId });
+      if (info?.ok === false || !info?.result?.file_path) {
+        throw new Error(`No pude obtener el archivo ${fileId} de Telegram`);
+      }
+      const respuesta = await fetchImpl(`https://api.telegram.org/file/bot${token}/${info.result.file_path}`, {
+        signal: AbortSignal.timeout(20_000)
+      });
+      if (!respuesta.ok) {
+        throw new Error(`No pude descargar el archivo ${fileId} de Telegram (HTTP ${respuesta.status})`);
+      }
+      return { buffer: await respuesta.arrayBuffer(), mimeType: 'audio/ogg' };
     }
   };
 }

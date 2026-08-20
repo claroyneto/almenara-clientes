@@ -1,5 +1,6 @@
 import { crearDatos } from '../_lib/datos.js';
 import { crearTelegram } from '../_lib/telegram.js';
+import { crearTranscriptor } from '../_lib/whisper.js';
 import { procesar } from '../_lib/procesar.js';
 
 export async function onRequestPost(context) {
@@ -22,9 +23,14 @@ export async function onRequestPost(context) {
 
   const datos = crearDatos({ supabaseUrl: env.SUPABASE_URL, serviceRoleKey: env.SUPABASE_SERVICE_ROLE_KEY });
   const telegram = crearTelegram({ token: env.TELEGRAM_BOT_TOKEN });
+  const transcriptor = crearTranscriptor({ apiKey: env.OPENAI_API_KEY });
+  const transcribirVoz = async (fileId) => {
+    const archivo = await telegram.descargarArchivo(fileId);
+    return transcriptor.transcribir(archivo.buffer, archivo.mimeType);
+  };
 
   try {
-    await procesar(update, { datos, telegram });
+    await procesar(update, { datos, telegram, transcribirVoz });
   } catch (error) {
     // Siempre 200 (spec §7): un error interno no debe hacer que Telegram
     // reintregue el mismo update — eso duplicaría el procesamiento, mismo

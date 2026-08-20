@@ -103,6 +103,13 @@ create policy clientes_update on public.clientes for update to authenticated
   using (public.es_autorizado())
   with check (public.es_autorizado());
 
+-- `notas` tiene `on delete cascade` sobre `cliente_id` (ver arriba), así
+-- que borrar un cliente borra sus notas solo -- no hace falta una policy
+-- de delete separada para `notas`.
+drop policy if exists clientes_delete on public.clientes;
+create policy clientes_delete on public.clientes for delete to authenticated
+  using (public.es_autorizado());
+
 drop policy if exists notas_select on public.notas;
 create policy notas_select on public.notas for select to authenticated
   using (public.es_autorizado());

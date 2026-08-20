@@ -6,8 +6,8 @@ import { normalizarNombre } from "./normalizarNombre.js";
 // negocio (comandos.js) y los datos (datos.js/telegram.js) — agnóstico de
 // cómo llegó el update (webhook o polling), por eso vive separado de
 // functions/api/telegram-webhook.js y de bot.js, y ambos lo reutilizan.
-export async function procesar(update, { datos, telegram }) {
-  const entrada = interpretarEntrada(update);
+export async function procesar(update, { datos, telegram, transcribirVoz }) {
+  let entrada = interpretarEntrada(update);
   if (!entrada) return;
 
   if (update.callback_query) {
@@ -18,6 +18,22 @@ export async function procesar(update, { datos, telegram }) {
   if (!autor) {
     await telegram.enviarMensaje(entrada.chatId, "No estás autorizado para usar este bot.");
     return;
+  }
+
+  // Transcribir y listo: de acá para abajo, una nota de voz recorre
+  // exactamente la misma máquina de estados que un mensaje escrito -- sirve
+  // para crear un cliente, agregar una nota, o cualquier paso, sin lógica
+  // de negocio nueva.
+  if (entrada.tipo === "voz") {
+    let texto;
+    try {
+      texto = await transcribirVoz(entrada.valor);
+    } catch (error) {
+      console.error("No se pudo transcribir la nota de voz:", error.message);
+      await telegram.enviarMensaje(entrada.chatId, "No pude entender ese audio. ¿Puedes escribirlo?");
+      return;
+    }
+    entrada = { ...entrada, tipo: "texto", valor: texto };
   }
 
   const estado = await datos.leerEstado(entrada.chatId);

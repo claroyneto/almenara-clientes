@@ -40,6 +40,46 @@ if (!clienteId) {
     mensajeEl.textContent = error ? `Error: ${error.message}` : 'Guardado.';
     mensajeEl.className = error ? 'mensaje error' : 'mensaje';
   });
+
+  document.getElementById('btn-agregar-nota').addEventListener('click', agregarNota);
+  document.getElementById('btn-eliminar-cliente').addEventListener('click', eliminarCliente);
+}
+
+async function agregarNota() {
+  const textareaEl = document.getElementById('nota-nueva');
+  const notaMensajeEl = document.getElementById('nota-mensaje');
+  const texto = textareaEl.value.trim();
+  if (!texto) return;
+
+  // Igual que obtenerAutorPorChatId() del lado del bot: el autor de la
+  // nota nunca se pide a mano, sale de quién está de verdad logueada.
+  const { data: { session } } = await supabase.auth.getSession();
+  const autor = session?.user?.email ?? 'Desconocido';
+
+  const { error } = await supabase.from('notas').insert({ cliente_id: clienteId, texto, autor });
+  notaMensajeEl.textContent = error ? `Error: ${error.message}` : 'Nota agregada.';
+  notaMensajeEl.className = error ? 'mensaje error' : 'mensaje';
+  if (error) return;
+
+  textareaEl.value = '';
+  await cargarNotas();
+  // Mismo efecto que agregarNota() en functions/_lib/datos.js del lado del
+  // bot: tocar actualizado_en para que el cliente suba al tope de la lista
+  // en index.html, sin importar por qué canal llegó la nota.
+  await supabase.from('clientes').update({ actualizado_en: new Date().toISOString() }).eq('id', clienteId);
+}
+
+async function eliminarCliente() {
+  const eliminarMensajeEl = document.getElementById('eliminar-mensaje');
+  if (!confirm(`¿Eliminar a ${nombreEl.value} y todas sus notas? No se puede deshacer.`)) return;
+
+  const { error } = await supabase.from('clientes').delete().eq('id', clienteId);
+  if (error) {
+    eliminarMensajeEl.textContent = `Error: ${error.message}`;
+    eliminarMensajeEl.style.display = 'block';
+    return;
+  }
+  location.href = 'index.html';
 }
 
 async function cargarDefiniciones() {

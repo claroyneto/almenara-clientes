@@ -37,6 +37,40 @@ test('responderCallback llama answerCallbackQuery con el id', async () => {
   assert.deepEqual(fetchImpl.llamadas[0].cuerpo, { callback_query_id: 'cb1' });
 });
 
+test('descargarArchivo pide getFile y después descarga desde la URL de archivos de Telegram', async () => {
+  const llamadas = [];
+  const fetchImpl = async (url, opciones) => {
+    llamadas.push(url);
+    if (url.includes('/getFile')) {
+      return { ok: true, json: async () => ({ ok: true, result: { file_path: 'voice/file_1.oga' } }) };
+    }
+    return { ok: true, arrayBuffer: async () => new TextEncoder().encode('audio-falso').buffer };
+  };
+  const telegram = crearTelegram({ token: 't', fetchImpl });
+  const archivo = await telegram.descargarArchivo('abc');
+  assert.equal(llamadas[0], 'https://api.telegram.org/bott/getFile');
+  assert.equal(llamadas[1], 'https://api.telegram.org/file/bott/voice/file_1.oga');
+  assert.equal(archivo.mimeType, 'audio/ogg');
+  assert.ok(archivo.buffer instanceof ArrayBuffer);
+});
+
+test('descargarArchivo lanza si Telegram no encuentra el archivo', async () => {
+  const fetchImpl = async () => ({ ok: true, json: async () => ({ ok: false, description: 'not found' }) });
+  const telegram = crearTelegram({ token: 't', fetchImpl });
+  await assert.rejects(() => telegram.descargarArchivo('inexistente'), /No pude obtener el archivo/);
+});
+
+test('descargarArchivo lanza si la descarga del archivo falla', async () => {
+  const fetchImpl = async (url) => {
+    if (url.includes('/getFile')) {
+      return { ok: true, json: async () => ({ ok: true, result: { file_path: 'voice/file_1.oga' } }) };
+    }
+    return { ok: false, status: 404 };
+  };
+  const telegram = crearTelegram({ token: 't', fetchImpl });
+  await assert.rejects(() => telegram.descargarArchivo('abc'), /No pude descargar el archivo.*HTTP 404/);
+});
+
 test('un rechazo de Telegram se registra en vez de tragarse en silencio', async () => {
   const original = console.error;
   const errores = [];

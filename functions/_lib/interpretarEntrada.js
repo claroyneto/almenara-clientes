@@ -13,7 +13,17 @@ export function interpretarEntrada(update) {
   }
 
   const mensaje = update.message;
-  if (!mensaje || typeof mensaje.text !== 'string') return null;
+  if (!mensaje) return null;
+
+  // La transcripción (I/O real, requiere Whisper) vive en procesar.js, no
+  // acá: interpretarEntrada() se mantiene puro y sincrónico, como el resto
+  // de sus casos. procesar.js transcribe y sustituye esta entrada por una
+  // de tipo 'texto' antes de tocar la máquina de estados.
+  if (mensaje.voice) {
+    return { chatId: String(mensaje.chat.id), tipo: 'voz', valor: mensaje.voice.file_id };
+  }
+
+  if (typeof mensaje.text !== 'string') return null;
 
   const texto = mensaje.text.trim();
   if (texto.startsWith('/')) {

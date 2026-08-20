@@ -93,3 +93,34 @@ test('un update que interpretarEntrada no reconoce no llama a ningún dato ni ma
   assert.equal(datos.llamadas.length, 0);
   assert.equal(telegram.mensajes.length, 0);
 });
+
+test('una nota de voz se transcribe y recorre el mismo camino que si se hubiera escrito', async () => {
+  const datos = fakeDatos({ autor: 'Jorge' });
+  const telegram = fakeTelegram();
+  const transcribirVoz = async (fileId) => {
+    assert.equal(fileId, 'abc123');
+    return '/start';
+  };
+  await procesar({ message: { chat: { id: 42 }, voice: { file_id: 'abc123' } } }, { datos, telegram, transcribirVoz });
+
+  assert.match(telegram.mensajes[0].texto, /\/nuevo/);
+});
+
+test('un usuario no autorizado no gasta una transcripción de voz', async () => {
+  const datos = fakeDatos({ autor: null });
+  const telegram = fakeTelegram();
+  const transcribirVoz = async () => { throw new Error('no debería llamarse'); };
+  await procesar({ message: { chat: { id: 42 }, voice: { file_id: 'abc123' } } }, { datos, telegram, transcribirVoz });
+
+  assert.match(telegram.mensajes[0].texto, /no est[aá]s autorizado/i);
+});
+
+test('si transcribir la voz falla, se avisa y no revienta el bot', async () => {
+  const datos = fakeDatos({ autor: 'Jorge' });
+  const telegram = fakeTelegram();
+  const transcribirVoz = async () => { throw new Error('Whisper no responde'); };
+  await procesar({ message: { chat: { id: 42 }, voice: { file_id: 'abc123' } } }, { datos, telegram, transcribirVoz });
+
+  assert.match(telegram.mensajes[0].texto, /no pude entender/i);
+  assert.ok(!datos.llamadas.some(([nombre]) => nombre === 'leerEstado'));
+});

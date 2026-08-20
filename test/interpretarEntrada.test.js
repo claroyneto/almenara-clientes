@@ -29,6 +29,11 @@ test('un update sin mensaje de texto ni callback devuelve null', () => {
   assert.equal(interpretarEntrada({}), null);
 });
 
+test('una nota de voz se interpreta como tipo voz, con el file_id como valor', () => {
+  const entrada = interpretarEntrada({ message: { chat: { id: 42 }, voice: { file_id: 'abc123' } } });
+  assert.deepEqual(entrada, { chatId: '42', tipo: 'voz', valor: 'abc123' });
+});
+
 test('un callback_query sin message no revienta, devuelve null', () => {
   assert.equal(interpretarEntrada({ callback_query: { id: 'cb1', data: 'etapa:prospecto' } }), null);
 });
